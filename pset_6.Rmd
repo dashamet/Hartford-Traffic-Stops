@@ -1,0 +1,251 @@
+---
+title: ""
+author: "Dasha Metropolitansky"
+date: "April 1, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(readr)
+library(stringr)
+library(sf)
+library(fs)
+library(ggplot2)
+library(gt)
+library(lubridate)
+library(ggthemes)
+library(gganimate)
+library(transformr)
+
+#Reading in the RDS file with data from Hartford, CT
+
+hartford <- read_rds(url("https://stacks.stanford.edu/file/druid:tr137st9964/tr137st9964_ct_hartford_2019_02_25.rds"))
+
+#Downloading and unzipping the Shapes file with data from Hartford, CT
+
+download.file(url = "https://stacks.stanford.edu/file/druid:tr137st9964/tr137st9964_ct_hartford_shapefiles_2019_02_25.tgz",
+              destfile = "shapes.tgz") 
+untar("shapes.tgz")
+shapes_data = read_sf("ct_hartford_shapefiles/Hartford_Neighborhoods.shp")
+
+#Reading in the RDS file with data from Seattle, WA
+
+seattle = read_rds(url("https://stacks.stanford.edu/file/druid:tr137st9964/tr137st9964_wa_seattle_2019_02_25.rds"))
+
+#Downloading and unzipping the Shapes file with data from Seattle, WA
+
+download.file(url = "https://stacks.stanford.edu/file/druid:tr137st9964/tr137st9964_wa_seattle_shapefiles_2019_02_25.tgz",
+              destfile = "shapes2.tgz")
+untar("shapes2.tgz")
+shapes_data_seattle = read_sf("wa_seattle_shapefiles/SPD_Beats_WGS84.shp")
+
+#Deleting the files to clear up space and prevent duplicate downloads if running the code more than once
+
+file_delete(c("shapes.tgz", "ct_hartford_shapefiles/", "shapes2.tgz", "wa_seattle_shapefiles/"))
+```
+
+## Answering Questions About the Data
+```{r include = FALSE}
+
+#Arrest_made is a logical and since TRUE = 1 and FALSE = 0, this code totals the cases where an arrest was made. 
+
+q1_1 = sum(hartford$arrest_made)
+```
+There were a total of `r q1_1` arrests made in Hartford.
+
+```{r include = FALSE, message = FALSE}
+
+#Filtering the Hartford data by cases where the arrestee is white, younger than 30, and a citation was issued
+
+q1_2 = hartford %>%
+  filter(subject_race == "white",
+         subject_age < 30,
+         citation_issued == "TRUE") 
+
+#Calculating the length of the list of unique locations associated with the above subsetted dataframe
+
+length(unique(q1_2$location))
+```
+There are `r length(unique(q1_2$location))` unique locations at which white individuals less than age 30 were issued citations.
+
+```{r echo = FALSE}
+
+#Filtering the Hartford data by cases where the arrestee is female and an arrest was made in the South End district
+
+q1_3 = hartford %>% 
+  filter(subject_sex == "female",
+         district == "SOUTH END",
+         arrest_made == "TRUE")
+
+#Formatting the date in the style of "March 27, 2019"
+
+q1_3$date = gsub(" 0", " ", format(q1_3$date, format = "%B %d, %Y"))
+
+#Arranging by date so that the top result will be the first arrest
+
+q1_3 = q1_3 %>%
+  arrange(date)
+```
+The first arrest of a female in the South End district was on `r q1_3[1, 2]`.
+
+```{r echo = FALSE}
+
+#Filtering for districts that have "SOUTH" in their name
+
+q1_4 = hartford %>% 
+  filter(str_detect(string = district, pattern = "SOUTH")) %>%
+  
+#Grouping the data by officer, counting the number of stops for each group, and arranging in descending order so that the top result will have the greatest number of stops
+  
+  group_by(officer_id_hash) %>%
+  count() %>% 
+  arrange(desc(n))
+```
+Officer `r q1_4[1,1]` has made the most stops in districts with “South” in their name.
+
+## Exploring Arrest Rate by Race and Gender
+
+```{r echo = FALSE}
+hartford %>%
+  
+#Grouping the data by subject sex, subject race, and whether an arrest was made, and counting the number of stops for each group
+  
+  group_by(subject_sex, subject_race, arrest_made) %>% 
+  count() %>%
+  
+#Creating a "wider" dataset by creating two columns for the number of cases where arrest_made = FALSE and arrest_made = TRUE
+  
+  spread(key = arrest_made, value = n, fill = 0) %>%
+  
+#Creating an arrest_rate variable, which is the number of TRUEs/total number of stops for each race-gender grouping
+  
+  mutate(total = `FALSE` + `TRUE`, arrest_rate = `TRUE`/total) %>% 
+  ungroup() %>%
+  
+#Renaming the levels of the factor 'subject_race'
+  
+  mutate(Race = recode_factor(subject_race,
+                              "asian/pacific islander" = "Asian/Pacific Islander",
+                              "black" = "Black",
+                              "hispanic" = "Hispanic",
+                              "other/unknown" = "Other/Unknown",
+                              "white" = "White")) %>%
+  
+#Renaming the levels of the factor 'subject_sex'
+  
+  mutate(subject_sex = recode_factor(subject_sex, 
+                                     "male" = "Male", 
+                                     "female" = "Female")) %>%
+  
+#Selecting the relevant variables for the graph (arrest rate, race, and sex) and creating a table where the "subject_sex" column is replaced by "male" and "female" columns and arrest_rate is the value for each race/gender grouping rather than its own column 
+  
+  select(arrest_rate, Race, subject_sex) %>%
+  spread(key = subject_sex, value = arrest_rate) %>%
+  
+#Formatting the graph: including percent signs next to the values, aligning the column text, and creating a title, subtitle, and source note
+  
+  gt() %>%
+  fmt_percent(columns = vars("Male", "Female")) %>%
+  tab_header(title = "Arrest Rate By Race and Gender in Hartford, CT from 2013-2016", 
+             subtitle = "Percentage of traffic stops that result in arrests") %>%
+  tab_spanner(label = "Gender", columns = c("Male", "Female")) %>%
+  cols_align(columns = c("Male", "Female"), align = "center") %>%
+  tab_source_note(md("Source: Stanford Open Policing Project")) 
+```
+
+## Visualizing the Distribution of Traffic Stops by Time of Day 
+
+```{r echo = FALSE}
+hartford %>% 
+  
+#Filtering out cases where the time of the stop is unknown
+  
+  filter(!is.na(time)) %>%
+  
+#Creating a histogram that shows how frequent stops are at different times
+  
+  ggplot(aes(x = time)) + 
+  geom_histogram(bins = 300) + 
+  
+#Adding a title, x-axis and y-axis labels, and a source note
+  
+  labs(title = "Traffic Stops by Time of Day in Hartford CT", 
+       x = "Time (24-Hour Clock)",
+       y = "Number of Stops",
+       caption = "Source: Stanford Open Policing Data") +
+  
+#Applying the "classic" theme
+  
+  theme_classic()
+```
+
+## Mapping the Locations of Arrests by Race and Gender 
+
+```{r echo = FALSE}
+arrests_race = hartford %>% 
+  
+#Filtering for cases where an arrest was made
+  
+  filter(arrest_made == TRUE) %>% 
+  
+#Filtering out cases where the longitude, latitude, and district of where the arrest took place are unknown
+  
+  filter(!is.na(lng), !is.na(lat)) %>%
+  filter(!is.na(district)) %>%
+  
+#Renaming the levels of the factor 'subject_race'
+  
+  mutate(subject_race = recode_factor(subject_race,
+                              "asian/pacific islander" = "Asian/Pacific Islander",
+                              "black" = "Black",
+                              "hispanic" = "Hispanic",
+                              "white" = "White")) %>%
+  
+#Renaming the levels of the factor 'subject_sex'
+  
+  mutate(subject_sex = recode_factor(subject_sex, 
+                                     "male" = "Male", 
+                                     "female" = "Female")) %>%
+  
+#Grouping by race
+  
+  group_by(subject_race)
+
+#Converting the coordinates objects into a spatial object
+
+arrest_locations = st_as_sf(arrests_race, 
+                             coords = c("lng", "lat"), 
+                             crs = 4326)
+
+#Creating a map-shaped polygon using the location of each arrest as a point and colouring each point by the arrestee's gender
+
+ggplot(data = shapes_data) +
+  geom_sf() +
+  geom_sf(data = arrest_locations, mapping = aes(fill = subject_sex, colour = subject_sex)) +
+  
+#Creating distinct maps for each race
+  
+  facet_grid(~subject_race) +
+  theme_map() + 
+  
+#Including a title, subtitle, and source note
+  
+  labs(title = "Location of Arrests in Hartford, CT by Race and Gender",
+       subtitle = "Arrests from 2013 - 2016", 
+       caption = "Source: Stanford Open Policing Project" ) + 
+  
+#Moving the legend so that it doesn't cover the maps
+  
+  theme(legend.position = c(0.7, 1.1),
+          legend.direction = "horizontal") +
+  
+#Modifying the legend colours
+  
+  scale_colour_manual(name = "Gender:", labels = c("Male", "Female"), values = c("royalblue2", "violetred1")) +
+  scale_fill_manual(name = "Gender:", labels = c("Male", "Female"), values = c("royalblue2", "violetred1")) +
+  
+#Colouring the map gridlines white
+  
+  theme(panel.grid.major = element_line(colour = "white"))
+```
