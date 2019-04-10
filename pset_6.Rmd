@@ -1,5 +1,5 @@
 ---
-title: ""
+title: "Traffic Stops in Hartford, Connecticut"
 author: "Dasha Metropolitansky"
 date: "April 1, 2019"
 output: html_document
@@ -93,7 +93,7 @@ q1_4 = hartford %>%
 ```
 Officer `r q1_4[1,1]` has made the most stops in districts with “South” in their name.
 
-### Exploring the differences in arrest rates between races and genders
+### Exploring differences in arrest rates by race and gender
 
 ```{r echo = FALSE}
 hartford %>%
@@ -143,7 +143,7 @@ hartford %>%
   tab_source_note(md("Source: Stanford Open Policing Project")) 
 ```
 
-### Visualizing the frequency of traffic stops over 24 hours
+### Visualizing the frequency of traffic stops over 24 hours 
 
 ```{r echo = FALSE}
 hartford %>% 
@@ -169,7 +169,7 @@ hartford %>%
   theme_classic()
 ```
 
-### Mapping the location of arrests by race and gender 
+### Mapping arrests by race and gender 
 
 ```{r echo = FALSE}
 arrests_race = hartford %>% 
