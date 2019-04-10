@@ -29,23 +29,12 @@ download.file(url = "https://stacks.stanford.edu/file/druid:tr137st9964/tr137st9
 untar("shapes.tgz")
 shapes_data = read_sf("ct_hartford_shapefiles/Hartford_Neighborhoods.shp")
 
-#Reading in the RDS file with data from Seattle, WA
-
-seattle = read_rds(url("https://stacks.stanford.edu/file/druid:tr137st9964/tr137st9964_wa_seattle_2019_02_25.rds"))
-
-#Downloading and unzipping the Shapes file with data from Seattle, WA
-
-download.file(url = "https://stacks.stanford.edu/file/druid:tr137st9964/tr137st9964_wa_seattle_shapefiles_2019_02_25.tgz",
-              destfile = "shapes2.tgz")
-untar("shapes2.tgz")
-shapes_data_seattle = read_sf("wa_seattle_shapefiles/SPD_Beats_WGS84.shp")
-
 #Deleting the files to clear up space and prevent duplicate downloads if running the code more than once
 
-file_delete(c("shapes.tgz", "ct_hartford_shapefiles/", "shapes2.tgz", "wa_seattle_shapefiles/"))
+file_delete(c("shapes.tgz", "ct_hartford_shapefiles/"))
 ```
 
-## Answering Questions About the Data
+### Answering questions about the data
 ```{r include = FALSE}
 
 #Arrest_made is a logical and since TRUE = 1 and FALSE = 0, this code totals the cases where an arrest was made. 
@@ -104,7 +93,7 @@ q1_4 = hartford %>%
 ```
 Officer `r q1_4[1,1]` has made the most stops in districts with “South” in their name.
 
-## Exploring Arrest Rate by Race and Gender
+### Exploring the differences in arrest rates between races and genders
 
 ```{r echo = FALSE}
 hartford %>%
@@ -154,7 +143,7 @@ hartford %>%
   tab_source_note(md("Source: Stanford Open Policing Project")) 
 ```
 
-## Visualizing the Distribution of Traffic Stops by Time of Day 
+### Visualizing the frequency of traffic stops over 24 hours
 
 ```{r echo = FALSE}
 hartford %>% 
@@ -180,7 +169,7 @@ hartford %>%
   theme_classic()
 ```
 
-## Mapping the Locations of Arrests by Race and Gender 
+### Mapping the location of arrests by race and gender 
 
 ```{r echo = FALSE}
 arrests_race = hartford %>% 
