@@ -1,6 +1,6 @@
 # Traffic Stops in Hartford, Connecticut
 
-* `hartford.Rmd` my analysis of traffic stop data in Hartford, Connecticut. It produces the HTML file `harvard_course_enrollment.html`. 
+* `hartford.Rmd` my analysis of traffic stop data in Hartford, Connecticut. It produces the HTML file `hartford.html`. 
   * In part 1, I conduct a preliminary exploratory analysis of the data. 
   * In part 2, I create a table which breaks down arrest rates by race and gender. 
   * In part 3, I graph the distribution of arrests by time of day. 
