@@ -1,5 +1,9 @@
 # Traffic Stops in Hartford, Connecticut
 
-This repo contains my analysis of traffic stop data in Hartford, Connecticut. In part 1, I answer basic questions about the data. In part 2, I create a table comparing arrest rates among various races and genders. In part 3, I create a graph which shows the distribution of arrests by time of day. In part 4, I create distinct maps for 4 racial groups that show where arrests took place and indicate the arrestee's gender. 
+* `hartford.Rmd` my analysis of traffic stop data in Hartford, Connecticut. It produces the HTML file `harvard_course_enrollment.html`. 
+  * In part 1, I conduct a preliminary exploratory analysis of the data. 
+  * In part 2, I create a table which breaks down arrest rates by race and gender. 
+  * In part 3, I graph the distribution of arrests by time of day. 
+  * In part 4, I create a map showing arrest locations and arrestees' gender for each racial group. 
 
-The data I used is from the Stanford Open Policing Project: https://openpolicing.stanford.edu/data/
+* I used data from the [Stanford Open Policing Project](https://openpolicing.stanford.edu/data/).
